@@ -1,0 +1,15 @@
+# Runtime lock (generated from local Python 3.13 environment)
+# Docker/CI 使用本文件安装，保证可复现；升级依赖时请重新生成。
+anyio==4.16.0
+fastapi==0.165.0
+httpx==0.28.1
+numpy==2.5.5
+openpyxl==3.1.5
+pyahocorasick==2.3.1
+pydantic==2.14.4
+pydantic_core==2.50.5
+pydantic-settings==2.16.3
+python-dotenv==1.2.4
+redis==8.2.0
+starlette==1.10.0
+uvicorn[standard]==0.54.0
