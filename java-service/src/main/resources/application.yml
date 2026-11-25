@@ -1,0 +1,81 @@
+server:
+  port: ${SERVER_PORT:8080}
+  address: ${SERVER_ADDRESS:127.0.0.1}
+
+spring:
+  application:
+    name: aics-java
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/aics?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USER:aics_ro}
+    password: ${MYSQL_PASSWORD:aics_ro_pwd}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+  jackson:
+    default-property-inclusion: non_null
+  mvc:
+    async:
+      # SSE 长连接：默认 30s 会截断长回答，这里放大到 5 分钟
+      request-timeout: ${SSE_ASYNC_TIMEOUT_MS:300000}
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8089}
+    address: ${MANAGEMENT_ADDRESS:127.0.0.1}
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+aics:
+  # Python AI 服务地址（内网）
+  python-base-url: ${PYTHON_BASE_URL:http://127.0.0.1:8000}
+  # 内部数据接口独立端口；<=0 关闭独立端口（回退到 8080）
+  internal-port: ${INTERNAL_PORT:8081}
+  internal-address: ${INTERNAL_ADDRESS:127.0.0.1}
+  # Java 与 Python 之间的共享密钥：必须显式配置，无默认值
+  internal-token: ${INTERNAL_TOKEN:}
+  # jwt：校验 Authorization；dev：仅本地回环地址可用（读取 X-Debug-User-Id）
+  auth-mode: ${AICS_AUTH_MODE:jwt}
+  # 严格模式：禁止 dev 鉴权、默认密钥、默认内部 token
+  strict: ${AICS_SECURITY_STRICT:false}
+  # dev-token 端点：仅回环地址，默认关闭
+  dev-token-enabled: ${AICS_DEV_TOKEN_ENABLED:false}
+  # 仅本地 Docker demo 显式开启；默认只允许回环地址
+  dev-allow-remote: ${AICS_DEV_ALLOW_REMOTE:false}
+  # Java 调 Python 的超时
+  python-connect-timeout-ms: ${PYTHON_CONNECT_TIMEOUT_MS:2000}
+  python-request-timeout-ms: ${PYTHON_REQUEST_TIMEOUT_MS:30000}
+  jwt:
+    secret: ${JWT_SECRET:}
+    issuer: ${JWT_ISSUER:aics}
+    audience: ${JWT_AUDIENCE:aics-client}
+    ttl-seconds: ${JWT_TTL_SECONDS:300}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://127.0.0.1:5500,http://localhost:5500,http://localhost:3000,http://localhost:5173}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    capacity: ${RATE_LIMIT_CAPACITY:30}
+    refill-per-second: ${RATE_LIMIT_REFILL:0.5}
+    max-keys: ${RATE_LIMIT_MAX_KEYS:10000}
+  order-query:
+    # true：查询脱敏视图；false：回退旧基表 SQL（回滚开关）
+    use-view: ${ORDER_USE_VIEW:true}
+  # 订单查询天数上限（服务端强制封顶）
+  order-days: 10
+  # 最近订单返回条数上限
+  order-limit: 20
+  product-limit: 10
+
+logging:
+  level:
+    root: INFO
+    com.ecom.aics: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{36} - %msg%n"
