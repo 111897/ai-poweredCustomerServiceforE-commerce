@@ -1,0 +1,22 @@
+[
+  {"query": "退换货政策是什么", "expect": "七天无理由", "collection": "faq"},
+  {"query": "多久发货", "expect": "48 小时", "collection": "faq"},
+  {"query": "怎么联系人工客服", "expect": "联系客服", "collection": "faq"},
+  {"query": "支持货到付款吗", "expect": "货到付款", "collection": "faq"},
+  {"query": "我是否已经下单", "expect": "下单状态", "collection": "faq"},
+  {"query": "我的快递到哪里了", "expect": "还未发货", "collection": "faq"},
+  {"query": "七天无理由退货", "expect": "七天无理由", "collection": "faq"},
+  {"query": "下单后多久发货", "expect": "48 小时", "collection": "faq"},
+  {"query": "oopp15 多少钱", "expect": "1500.00", "collection": "product"},
+  {"query": "手机有货吗", "expect": "oopp15", "collection": "product"},
+  {"query": "降噪蓝牙耳机价格", "expect": "299.00", "collection": "product"},
+  {"query": "机械键盘有货吗", "expect": "缺货", "collection": "product"},
+  {"query": "纯棉T恤多少钱", "expect": "79.00", "collection": "product"},
+  {"query": "保温杯 500ml", "expect": "500ml", "collection": "product"},
+  {"query": "降噪耳机卖点", "expect": "主动降噪", "collection": "product"},
+  {"query": "键盘什么轴", "expect": "茶轴", "collection": "product"},
+  {"query": "T恤材质", "expect": "100%纯棉", "collection": "product"},
+  {"query": "保温杯内胆", "expect": "316", "collection": "product"},
+  {"query": "耳机续航", "expect": "40小时", "collection": "product"},
+  {"query": "货到付款", "expect": "货到付款", "collection": "faq"}
+]
