@@ -1,0 +1,104 @@
+# 本地一键启动：mysql + redis + java + python
+# 注意：仅为本地演示；生产需收紧权限、启用 TLS、使用密钥管理。
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: aics-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: aics
+      MYSQL_USER: aics_ro
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-aics_ro_pwd}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - mysql-data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: aics-redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: ["redis-server", "--maxmemory", "1gb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  python-service:
+    build: ./python-service
+    container_name: aics-python
+    environment:
+      JAVA_BASE_URL: http://java-service:8080
+      JAVA_INTERNAL_BASE_URL: http://java-service:8081
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-local-aics-internal-7f3c9b2e6d1a4c8f}
+      ORDER_DAYS: "10"
+      MEMORY_BACKEND: redis
+      REDIS_URL: redis://redis:6379/0
+      VECTOR_STORE: memory
+      EMBEDDING_PROVIDER: hash
+      RAG_MIN_SCORE: "0.3"
+      LLM_MOCK: ${LLM_MOCK:-true}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
+      KNOWLEDGE_FAQ_PATH: ./data/knowledge/faq
+      KNOWLEDGE_PRODUCT_PATH: ./data/knowledge/product
+      KNOWLEDGE_BANNED_PATH: ./data/knowledge/banned
+      AUDIT_LOG_PATH: /app/logs/audit.log
+    # 不对外发布 8000；仅容器网络内由 Java 访问
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  java-service:
+    build: ./java-service
+    container_name: aics-java
+    environment:
+      MYSQL_URL: jdbc:mysql://mysql:3306/aics?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      MYSQL_USER: aics_ro
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-aics_ro_pwd}
+      PYTHON_BASE_URL: http://python-service:8000
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-local-aics-internal-7f3c9b2e6d1a4c8f}
+      # 本地 Docker 演示：dev 鉴权 + 允许容器来源；生产必须改为 jwt
+      AICS_AUTH_MODE: dev
+      AICS_DEV_ALLOW_REMOTE: "true"
+      JWT_SECRET: ${JWT_SECRET:-local-aics-jwt-secret-32bytes-min-2026}
+      SERVER_ADDRESS: 0.0.0.0
+      INTERNAL_ADDRESS: 0.0.0.0
+      INTERNAL_PORT: "8081"
+      MANAGEMENT_ADDRESS: 0.0.0.0
+      MANAGEMENT_PORT: "8089"
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+    # 仅发布公网端口；8081 内部端口与 8089 管理端口只在容器网络内
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      python-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8089/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql-data:
