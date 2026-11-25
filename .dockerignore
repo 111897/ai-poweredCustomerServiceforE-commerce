@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+.idea
+.vscode
+*.log
+logs/
+**/target/
+**/__pycache__/
+**/*.pyc
+**/.venv
+**/venv
+**/.pytest_cache
+**/.ruff_cache
+data/chroma/
+屏幕截图*
+明日继续指南.txt

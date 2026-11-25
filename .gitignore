@@ -1,0 +1,40 @@
+# Java
+java-service/target/
+*.class
+*.jar
+!java-service/.mvn/wrapper/*.jar
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+python-service/.env
+
+# 根目录运行配置（含 API Key，禁止入库）
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 运行时数据（知识库表格建议纳入版本管理，可按需解除忽略）
+# data/knowledge/**/*.xlsx
+logs/
+*.log
+data/chroma/
+
+# 本机个人文件（禁止入库）
+/屏幕截图*
+/明日继续指南.txt
+/docs/private/
+
+# 测试/静态检查缓存
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
