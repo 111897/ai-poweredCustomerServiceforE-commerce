@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  java:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Run Java unit tests
+        working-directory: java-service
+        run: mvn -B test
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r python-service/requirements.lock
+          pip install -r python-service/requirements-dev.txt
+      - name: Lint
+        working-directory: python-service
+        run: ruff check app tests
+      - name: Run Python tests
+        working-directory: python-service
+        env:
+          MEMORY_BACKEND: memory
+          LLM_MOCK: "true"
+          INTERNAL_TOKEN: test-internal-token
+        run: pytest -q
