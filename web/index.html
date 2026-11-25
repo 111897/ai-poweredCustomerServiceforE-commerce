@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AICS 流式对话 Demo</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 920px; margin: 32px auto; padding: 0 16px; }
+    h1 { font-size: 20px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    input, select, textarea, button { font: inherit; padding: 6px 8px; }
+    textarea { width: 100%; height: 80px; box-sizing: border-box; }
+    button { cursor: pointer; }
+    pre { background: #111; color: #e6e6e6; padding: 16px; border-radius: 8px; min-height: 220px; white-space: pre-wrap; word-break: break-word; }
+    .hint { color: #888; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>AI 电商智能客服 · SSE 流式 Demo</h1>
+  <p class="hint">需要先启动 start-python.bat 与 start-java.bat（dev 鉴权）。本页由 start-web.bat 在 5500 端口提供。</p>
+
+  <div class="row">
+    <label>用户ID <input id="user" value="1001" size="6"></label>
+    <label>场景
+      <select id="scene">
+        <option value="order_detail">order_detail</option>
+        <option value="product_detail">product_detail</option>
+        <option value="home">home</option>
+        <option value="">空</option>
+      </select>
+    </label>
+  </div>
+  <textarea id="message">我买的耳机发货了吗</textarea>
+  <div class="row" style="margin-top:12px">
+    <button id="send">发送</button>
+    <span id="status" class="hint"></span>
+  </div>
+  <pre id="output"></pre>
+
+  <script>
+    const BASE = "http://127.0.0.1:8080";
+    const output = document.getElementById("output");
+    const status = document.getElementById("status");
+
+    function handleFrame(frame) {
+      const lines = frame.split("\n");
+      let event = "";
+      let data = "";
+      for (const line of lines) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        if (line.startsWith("data:")) data += line.slice(5).trim();
+      }
+      if (!event) return;
+      let obj = {};
+      try { obj = JSON.parse(data || "{}"); } catch (_) { /* ignore */ }
+      if (event === "delta") {
+        output.textContent += obj.content || "";
+      } else if (event === "warning") {
+        output.textContent += `\n[warning:${obj.type || ""}] ${obj.message || ""}\n`;
+      } else if (event === "error") {
+        output.textContent += `\n[error] ${obj.message || data}\n`;
+      } else if (event === "done") {
+        output.textContent += `\n\n[done] ${obj.finishReason || ""}\n`;
+      }
+    }
+
+    async function send() {
+      const userId = document.getElementById("user").value.trim() || "1001";
+      const scene = document.getElementById("scene").value;
+      const message = document.getElementById("message").value.trim();
+      if (!message) return;
+
+      output.textContent = "";
+      status.textContent = "请求中...";
+      const button = document.getElementById("send");
+      button.disabled = true;
+
+      try {
+        const response = await fetch(BASE + "/api/chat/stream", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-User-Id": userId
+          },
+          body: JSON.stringify({ message, scene })
+        });
+        if (!response.ok || !response.body) {
+          output.textContent = `HTTP ${response.status}\n${await response.text()}`;
+          return;
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let index;
+          while ((index = buffer.indexOf("\n\n")) >= 0) {
+            const frame = buffer.slice(0, index);
+            buffer = buffer.slice(index + 2);
+            handleFrame(frame);
+          }
+        }
+        status.textContent = "完成";
+      } catch (error) {
+        output.textContent += `\n[网络错误] ${error}`;
+        status.textContent = "失败";
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    document.getElementById("send").addEventListener("click", send);
+  </script>
+</body>
+</html>
